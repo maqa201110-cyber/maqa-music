@@ -29,10 +29,12 @@ jobs:
           npx cap init "MAQA Pro" com.maqa.pro --web-dir=www
           npx cap add android
 
-      - name: Müzik tarama eklentisi ve izinler
+      - name: Eklenti, servis ve izinler
         run: |
           cp MusicScannerPlugin.java MainActivity.java android/app/src/main/java/com/maqa/pro/
-          sed -i 's|<application|<uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />\n    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />\n    <application|' android/app/src/main/AndroidManifest.xml
+          M=android/app/src/main/AndroidManifest.xml
+          sed -i 's|<application|<uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />\n    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />\n    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />\n    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />\n    <uses-permission android:name="android.permission.WAKE_LOCK" />\n    <application|' $M
+          sed -i 's|</application>|<service android:name=".MusicScannerPlugin$MusicService" android:exported="false" android:foregroundServiceType="mediaPlayback" />\n    </application>|' $M
           npx cap sync android
 
       - name: APK derle
