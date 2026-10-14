@@ -1,11 +1,23 @@
 package com.maqa.pro;
 
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.app.Service;
 import android.Manifest;
 import android.content.ContentUris;
+import android.content.Intent;
+import android.content.pm.ServiceInfo;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
+import android.os.IBinder;
+import android.os.PowerManager;
 import android.provider.MediaStore;
+
+import androidx.core.app.NotificationCompat;
+import androidx.core.content.ContextCompat;
 
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
@@ -21,7 +33,8 @@ import com.getcapacitor.annotation.PermissionCallback;
     name = "MusicScanner",
     permissions = {
         @Permission(alias = "audio", strings = { Manifest.permission.READ_MEDIA_AUDIO }),
-        @Permission(alias = "storage", strings = { Manifest.permission.READ_EXTERNAL_STORAGE })
+        @Permission(alias = "storage", strings = { Manifest.permission.READ_EXTERNAL_STORAGE }),
+        @Permission(alias = "notif", strings = { Manifest.permission.POST_NOTIFICATIONS })
     }
 )
 public class MusicScannerPlugin extends Plugin {
@@ -30,37 +43,28 @@ public class MusicScannerPlugin extends Plugin {
         return Build.VERSION.SDK_INT >= 33 ? "audio" : "storage";
     }
 
+    /* ---------- Müzik taraması ---------- */
     @PluginMethod
     public void scan(PluginCall call) {
-        if (getPermissionState(alias()) == PermissionState.GRANTED) {
-            doScan(call);
-        } else {
-            requestPermissionForAlias(alias(), call, "permResult");
-        }
+        if (getPermissionState(alias()) == PermissionState.GRANTED) doScan(call);
+        else requestPermissionForAlias(alias(), call, "permResult");
     }
 
     @PermissionCallback
     private void permResult(PluginCall call) {
-        if (getPermissionState(alias()) == PermissionState.GRANTED) {
-            doScan(call);
-        } else {
-            call.reject("Müzik izni verilmedi");
-        }
+        if (getPermissionState(alias()) == PermissionState.GRANTED) doScan(call);
+        else call.reject("Müzik izni verilmedi");
     }
 
     private void doScan(PluginCall call) {
         Uri collection = Build.VERSION.SDK_INT >= 29
             ? MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
             : MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
-
         String[] cols = {
-            MediaStore.Audio.Media._ID,
-            MediaStore.Audio.Media.TITLE,
-            MediaStore.Audio.Media.ARTIST
+            MediaStore.Audio.Media._ID, MediaStore.Audio.Media.TITLE, MediaStore.Audio.Media.ARTIST,
+            MediaStore.Audio.Media.ALBUM_ID, MediaStore.Audio.Media.DATE_ADDED
         };
-        // Müzik olanlar, 30 saniyeden kısa zil seslerini ele
-        String where = MediaStore.Audio.Media.IS_MUSIC + " != 0 AND "
-            + MediaStore.Audio.Media.DURATION + " >= 30000";
+        String where = MediaStore.Audio.Media.IS_MUSIC + " != 0 AND " + MediaStore.Audio.Media.DURATION + " >= 30000";
 
         JSArray songs = new JSArray();
         try (Cursor c = getContext().getContentResolver().query(
@@ -72,6 +76,8 @@ public class MusicScannerPlugin extends Plugin {
                     s.put("id", id);
                     s.put("title", c.getString(1));
                     s.put("artist", c.getString(2));
+                    s.put("albumId", c.getLong(3));
+                    s.put("added", c.getLong(4));
                     s.put("uri", ContentUris.withAppendedId(collection, id).toString());
                     songs.put(s);
                 }
@@ -80,9 +86,76 @@ public class MusicScannerPlugin extends Plugin {
             call.reject("Tarama hatası: " + e.getMessage());
             return;
         }
-
         JSObject res = new JSObject();
         res.put("songs", songs);
         call.resolve(res);
+    }
+
+    /* ---------- Arka planda çalma (ön plan servisi) ---------- */
+    @PluginMethod
+    public void nowPlaying(PluginCall call) {
+        boolean playing = Boolean.TRUE.equals(call.getBoolean("playing", true));
+        if (Build.VERSION.SDK_INT >= 33 && playing && getPermissionState("notif") == PermissionState.PROMPT) {
+            requestPermissionForAlias("notif", call, "notifResult");
+        } else {
+            applyService(call);
+        }
+    }
+
+    @PermissionCallback
+    private void notifResult(PluginCall call) {
+        applyService(call);
+    }
+
+    private void applyService(PluginCall call) {
+        Intent i = new Intent(getContext(), MusicService.class);
+        try {
+            if (Boolean.TRUE.equals(call.getBoolean("playing", true))) {
+                i.putExtra("title", call.getString("title", ""));
+                i.putExtra("artist", call.getString("artist", ""));
+                ContextCompat.startForegroundService(getContext(), i);
+            } else {
+                getContext().stopService(i);
+            }
+        } catch (Exception e) { /* arka plandan başlatma kısıtı: sessizce geç */ }
+        call.resolve();
+    }
+
+    public static class MusicService extends Service {
+        private PowerManager.WakeLock wl;
+
+        @Override
+        public IBinder onBind(Intent intent) { return null; }
+
+        @Override
+        public int onStartCommand(Intent intent, int flags, int startId) {
+            String title = intent != null ? intent.getStringExtra("title") : "";
+            String artist = intent != null ? intent.getStringExtra("artist") : "";
+            if (Build.VERSION.SDK_INT >= 26) {
+                getSystemService(NotificationManager.class).createNotificationChannel(
+                    new NotificationChannel("maqa", "Müzik çalıyor", NotificationManager.IMPORTANCE_LOW));
+            }
+            Intent open = new Intent(this, MainActivity.class)
+                .setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            PendingIntent pi = PendingIntent.getActivity(this, 0, open,
+                PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+            Notification n = new NotificationCompat.Builder(this, "maqa")
+                .setSmallIcon(android.R.drawable.ic_media_play)
+                .setContentTitle(title).setContentText(artist)
+                .setContentIntent(pi).setOngoing(true).setOnlyAlertOnce(true).build();
+            if (Build.VERSION.SDK_INT >= 29) startForeground(1, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
+            else startForeground(1, n);
+            if (wl == null) {
+                wl = ((PowerManager) getSystemService(POWER_SERVICE)).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "maqa:play");
+                wl.acquire(6 * 60 * 60 * 1000L);
+            }
+            return START_NOT_STICKY;
+        }
+
+        @Override
+        public void onDestroy() {
+            if (wl != null && wl.isHeld()) wl.release();
+            super.onDestroy();
+        }
     }
 }

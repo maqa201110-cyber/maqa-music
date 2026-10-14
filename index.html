@@ -104,6 +104,21 @@ body.playing .disc{animation-play-state:running}
 #presets button{padding:16px 14px;border-radius:16px;border:1px solid #4a4766;background:transparent;color:#fff;font-size:14px;text-align:left;display:flex;flex-direction:column;gap:12px}
 #presets button.on{border-color:var(--gold);background:#facc1518}
 #presets span{font-size:22px}
+
+.tabs{overflow-x:auto}.tab{white-space:nowrap;flex-shrink:0}
+.search{display:flex;gap:8px}.search input{flex:1;width:auto}
+.search select{background:var(--card);color:#fff;border:1px solid var(--line);border-radius:25px;padding:0 10px;font-size:13px}
+#chips{display:none;gap:8px;overflow-x:auto;padding:4px 20px 8px}
+.chip{flex-shrink:0;padding:7px 14px;border-radius:16px;border:1px solid #444;background:var(--card);color:#ddd;font-size:13px}
+.chip.on{background:var(--gold);color:#000;border-color:var(--gold)}
+.thumb{overflow:hidden}.thumb img{width:100%;height:100%;object-fit:cover;border-radius:inherit}
+#menu{position:fixed;inset:0;z-index:3000;background:#0008;display:none;align-items:flex-end}
+#menu.open{display:flex}
+#menuBox{width:100%;background:#22222e;border-radius:20px 20px 0 0;padding:14px 20px calc(14px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;max-height:70vh;overflow-y:auto}
+#menuBox button{background:none;border:none;color:#fff;text-align:left;font-size:15px;padding:14px 4px;border-bottom:1px solid #ffffff12}
+#menuBox input{background:var(--bg);border:1px solid var(--line);border-radius:12px;color:#fff;padding:12px;font-size:15px;margin-bottom:6px;outline:none}
+#toast{position:fixed;left:50%;bottom:150px;transform:translate(-50%,20px);background:#fff;color:#000;padding:10px 16px;border-radius:20px;font-size:13px;opacity:0;pointer-events:none;transition:.25s;z-index:4000}
+#toast.show{opacity:1;transform:translate(-50%,0)}
 </style>
 </head>
 <body>
@@ -111,7 +126,7 @@ body.playing .disc{animation-play-state:running}
 <div class="header">
   <h1>🎵 MAQA Pro</h1>
   <div class="right">
-    <button class="ic" id="eqHead">🎚</button>
+    <button class="ic" id="themeBtn">🎨</button><button class="ic" id="eqHead">🎚</button>
     <span id="count">0 Şarkı</span>
     <label class="add-btn" id="addBtn" for="picker">+ Müzik Ekle</label>
     <button class="add-btn" id="scanBtn" style="display:none;border:none">↻ Tara</button>
@@ -120,13 +135,18 @@ body.playing .disc{animation-play-state:running}
 
 <input type="file" id="picker" accept="audio/*" multiple hidden>
 
-<div class="search"><input type="text" id="search" placeholder="Şarkı veya sanatçı ara..."></div>
+<div class="search"><input type="text" id="search" placeholder="Şarkı veya sanatçı ara..."><select id="sort"><option value="name">A-Z</option><option value="artist">Sanatçı</option><option value="new">Yeni</option></select></div>
 
 <div class="tabs">
   <button class="tab active" data-tab="all">Tüm Şarkılar</button>
   <button class="tab" data-tab="fav">Favoriler</button>
+  <button class="tab" data-tab="pl">Listelerim</button>
+  <button class="tab" data-tab="recent">Son çalınan</button>
+  <button class="tab" data-tab="top">En çok</button>
+  <button class="tab" data-tab="artist">Sanatçılar</button>
 </div>
 
+<div id="chips"></div>
 <ul id="list"></ul>
 
 <div id="empty">
@@ -144,7 +164,7 @@ body.playing .disc{animation-play-state:running}
   </div>
   <div class="main">
     <div class="left">
-      <div class="thumb">🎵</div>
+      <div class="thumb" id="miniThumb">🎵</div>
       <div style="min-width:0">
         <div id="pTitle">Şarkı seçilmedi</div>
         <div id="pArtist">MAQA Player</div>
@@ -160,12 +180,12 @@ body.playing .disc{animation-play-state:running}
 
 <div id="np" class="sheet">
   <div class="sh-top"><button class="ic" id="npClose">⌄</button><span>Şu an çalıyor</span><button class="ic" id="eqOpen">🎚</button></div>
-  <div class="stage"><div class="disc"><div class="thumb">🎵</div></div></div>
+  <div class="stage"><div class="disc"><div class="thumb" id="discThumb">🎵</div></div></div>
   <canvas id="viz" width="320" height="56"></canvas>
   <div class="np-meta"><div style="min-width:0"><div id="npTitle">-</div><div id="npArtist">-</div></div><button class="ic" id="npFav">☆</button></div>
   <div class="progress"><span class="time" id="cur2">0:00</span><input type="range" id="bar2" class="seek" value="0" min="0" max="100" step="0.1"><span class="time" id="dur2">0:00</span></div>
   <div class="np-ctrl"><button id="shufBtn">🔀</button><button id="prev2">⏮</button><button id="pp2">▶</button><button id="next2">⏭</button><button id="repBtn">🔁</button></div>
-  <div class="np-bottom"><button class="pill" id="sleepBtn">⏲ Uyku: kapalı</button></div>
+  <div class="np-bottom"><button class="pill" id="sleepBtn">⏲ Uyku: kapalı</button><button class="pill" id="speedBtn">⚡ 1x</button></div>
 </div>
 
 <div id="eq" class="sheet">
@@ -173,6 +193,9 @@ body.playing .disc{animation-play-state:running}
   <div id="bands"></div>
   <div id="presets"></div>
 </div>
+
+<div id="menu"><div id="menuBox"></div></div>
+<div id="toast"></div>
 
 <audio id="audio" preload="metadata"></audio>
 
@@ -193,7 +216,7 @@ async function scanNative() {
     songs = res.songs.map(m => ({
       id: 'n' + m.id, name: m.title,
       artist: (!m.artist || m.artist === '<unknown>') ? 'Bilinmeyen sanatçı' : m.artist,
-      uri: m.uri, native: true, fav: favs.has('n' + m.id) ? 1 : 0
+      uri: m.uri, native: true, added: m.added || 0, art: m.albumId ? 'content://media/external/audio/albumart/' + m.albumId : null, fav: favs.has('n' + m.id) ? 1 : 0
     })).sort((a, b) => a.name.localeCompare(b.name, 'tr'));
   } catch (e) { songs = []; scanError = true; }
   render();
@@ -250,8 +273,9 @@ $('picker').addEventListener('change', async e => {
 
 /* ---------- Liste ---------- */
 function render() {
+  buildChips();
   const q = $('search').value.trim().toLowerCase();
-  queue = songs.filter(s => (tab === 'all' || s.fav) && (s.name + ' ' + s.artist).toLowerCase().includes(q));
+  queue = sortList(baseList()).filter(s => (s.name + ' ' + s.artist).toLowerCase().includes(q));
   $('count').textContent = songs.length + ' Şarkı';
 
   list.textContent = '';
@@ -262,6 +286,7 @@ function render() {
     li.querySelector('.name').textContent = s.name;
     const th = li.querySelector('.thumb'); th.style.setProperty('--h', hue(s));
     if (current && current.id === s.id) th.innerHTML = '<b class="bars"><i></i><i></i><i></i></b>';
+    else if (s.art) { th.dataset.art = s.art; io ? io.observe(th) : loadArt(th); }
     li.querySelector('.artist').textContent = s.artist;
 
     const fav = document.createElement('button');
@@ -269,6 +294,8 @@ function render() {
     fav.textContent = s.fav ? '★' : '☆';
     fav.onclick = ev => { ev.stopPropagation(); toggleFav(s); };
 
+    const more = document.createElement('button'); more.className = 'icon-btn'; more.textContent = '⋮';
+    more.onclick = ev => { ev.stopPropagation(); openMenu({ song: s }); };
     const del = document.createElement('button');
     del.className = 'icon-btn';
     del.textContent = '🗑';
@@ -279,7 +306,7 @@ function render() {
       setTimeout(() => { del.dataset.arm = ''; del.textContent = '🗑'; del.classList.remove('arm'); }, 2500);
     };
 
-    NATIVE ? li.append(fav) : li.append(fav, del);
+    NATIVE ? li.append(fav, more) : li.append(fav, more, del);
     li.onclick = () => play(s);
     list.appendChild(li);
   });
@@ -293,7 +320,7 @@ function render() {
     empty.style.display = 'block';
     if (NATIVE) $('rescanBtn').style.display = ''; else empty.querySelector('label').style.display = '';
   } else if (!queue.length) {
-    $('emptyText').textContent = tab === 'fav' && !q ? 'Henüz favori şarkın yok. Şarkının yanındaki ☆ işaretine dokun.' : 'Sonuç bulunamadı.';
+    $('emptyText').textContent = tab === 'fav' && !q ? 'Henüz favori şarkın yok. Şarkının yanındaki ☆ işaretine dokun.' : (tab === 'pl' || tab === 'artist') && !sel ? 'Yukarıdan bir seçim yap.' : (tab === 'recent' || tab === 'top') && !q ? 'Henüz şarkı çalmadın.' : 'Sonuç bulunamadı.';
     empty.style.display = 'block'; empty.querySelector('label').style.display = 'none';
   } else empty.style.display = 'none';
   syncNp();
@@ -325,6 +352,9 @@ function play(s) {
   audio.play().catch(() => {});
   initAudio();
   document.documentElement.style.setProperty('--h', hue(s));
+  const ps = D.plays[s.id] || { n: 0 }; D.plays[s.id] = { n: ps.n + 1, t: Date.now() }; saveD();
+  audio.defaultPlaybackRate = audio.playbackRate = D.speed;
+  setThumb($('discThumb'), s); setThumb($('miniThumb'), s);
   $('pTitle').textContent = s.name;
   $('pArtist').textContent = s.artist;
   if ('mediaSession' in navigator) {
@@ -333,6 +363,7 @@ function play(s) {
   render();
 }
 function step(d) {
+  if (d > 0 && upNext.length) return play(upNext.shift());
   if (!queue.length) return;
   let i = queue.findIndex(s => current && s.id === current.id);
   if (i < 0) i = d > 0 ? -1 : 0;
@@ -354,7 +385,7 @@ audio.addEventListener('pause', () => { $('pp').textContent = $('pp2').textConte
 audio.addEventListener('ended', () => {
   if (repeat === 2) { audio.currentTime = 0; audio.play().catch(() => {}); return; }
   const i = queue.findIndex(s => current && s.id === current.id);
-  if (repeat === 0 && !shuffle && i === queue.length - 1) return;
+  if (repeat === 0 && !shuffle && !upNext.length && i === queue.length - 1) return;
   step(1);
 });
 audio.addEventListener('timeupdate', () => {
@@ -379,7 +410,7 @@ if ('mediaSession' in navigator) {
 /* Sekmeler ve arama */
 document.querySelectorAll('.tab').forEach(b => b.onclick = () => {
   document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
-  b.classList.add('active'); tab = b.dataset.tab; render();
+  b.classList.add('active'); tab = b.dataset.tab; sel = null; render();
 });
 $('search').addEventListener('input', render);
 
@@ -490,11 +521,103 @@ const vc = $('viz').getContext('2d');
     analyser.getByteFrequencyData(fdata);
     np.style.setProperty('--b', ((fdata[0] + fdata[1] + fdata[2] + fdata[3]) / 1020).toFixed(2));
     const W = 320, H = 56, n = 32, w = W / n;
-    vc.clearRect(0, 0, W, H); vc.fillStyle = '#facc15';
+    vc.clearRect(0, 0, W, H); vc.fillStyle = D.accent;
     for (let i = 0; i < n; i++) { const h = Math.max(3, fdata[i] / 255 * H); vc.fillRect(i * w + 2, H - h, w - 4, h); }
   }
   requestAnimationFrame(loop);
 })();
+
+/* ===== Listeler, sıra, sıralama, istatistik, hız, tema, albüm kapağı, arka plan ===== */
+let D = { pl: {}, plays: {}, sort: 'name', speed: 1, accent: '#facc15' };
+try { Object.assign(D, JSON.parse(localStorage.getItem('maqa-data') || '{}')); } catch (_) {}
+const saveD = () => { try { localStorage.setItem('maqa-data', JSON.stringify(D)); } catch (_) {} };
+let sel = null, upNext = [];
+const byId = id => songs.find(s => String(s.id) === String(id));
+
+const SORTS = {
+  name: (a, b) => a.name.localeCompare(b.name, 'tr'),
+  artist: (a, b) => a.artist.localeCompare(b.artist, 'tr') || a.name.localeCompare(b.name, 'tr'),
+  new: (a, b) => (b.added || +b.id || 0) - (a.added || +a.id || 0)
+};
+const sortList = l => ['all', 'fav', 'artist'].includes(tab) ? [...l].sort(SORTS[D.sort] || SORTS.name) : l;
+function baseList() {
+  const P = Object.entries(D.plays);
+  if (tab === 'all') return songs;
+  if (tab === 'fav') return songs.filter(s => s.fav);
+  if (tab === 'recent') return P.sort((a, b) => b[1].t - a[1].t).slice(0, 50).map(e => byId(e[0])).filter(Boolean);
+  if (tab === 'top') return P.sort((a, b) => b[1].n - a[1].n).slice(0, 50).map(e => byId(e[0])).filter(Boolean);
+  if (tab === 'pl') return sel && D.pl[sel] ? D.pl[sel].map(byId).filter(Boolean) : [];
+  return sel ? songs.filter(s => s.artist === sel) : [];
+}
+$('sort').value = D.sort;
+$('sort').onchange = e => { D.sort = e.target.value; saveD(); render(); };
+
+function buildChips() {
+  const c = $('chips'); c.textContent = '';
+  if (tab !== 'pl' && tab !== 'artist') { c.style.display = 'none'; return; }
+  c.style.display = 'flex';
+  const mk = (t, fn, on) => { const b = document.createElement('button'); b.className = 'chip' + (on ? ' on' : ''); b.textContent = t; b.onclick = fn; c.appendChild(b); };
+  if (tab === 'pl') mk('+ Yeni liste', () => openMenu({ newList: true }));
+  const names = tab === 'pl' ? Object.keys(D.pl) : [...new Set(songs.map(s => s.artist))].sort((a, b) => a.localeCompare(b, 'tr'));
+  names.forEach(n => mk(n, () => { sel = sel === n ? null : n; render(); }, sel === n));
+  if (tab === 'pl' && sel) mk('🗑 Listeyi sil', () => { delete D.pl[sel]; sel = null; saveD(); render(); });
+}
+
+/* Şarkı menüsü */
+function toast(m) { const t = $('toast'); t.textContent = m; t.classList.add('show'); clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 1800); }
+const closeMenu = () => $('menu').classList.remove('open');
+$('menu').onclick = e => { if (e.target.id === 'menu') closeMenu(); };
+function openMenu(o) {
+  const box = $('menuBox'); box.textContent = '';
+  const s = o.song;
+  const add = (t, fn) => { const b = document.createElement('button'); b.textContent = t; b.onclick = () => { closeMenu(); fn(); }; box.appendChild(b); };
+  if (o.newList) {
+    const inp = document.createElement('input'); inp.placeholder = 'Liste adı'; box.appendChild(inp);
+    setTimeout(() => inp.focus(), 80);
+    add('Oluştur', () => {
+      const n = inp.value.trim(); if (!n) return;
+      D.pl[n] = D.pl[n] || []; if (s && !D.pl[n].includes(s.id)) D.pl[n].push(s.id);
+      saveD(); if (!s) sel = n; render(); toast('Liste hazır');
+    });
+  } else if (o.pick) {
+    Object.keys(D.pl).forEach(n => add('📁 ' + n, () => { if (!D.pl[n].includes(s.id)) D.pl[n].push(s.id); saveD(); toast(n + ' listesine eklendi'); }));
+    add('+ Yeni liste', () => openMenu({ newList: true, song: s }));
+  } else {
+    add('▶ Sıradaki çal', () => { upNext.unshift(s); toast('Sıradaki şarkı olarak eklendi'); });
+    add('➕ Sıraya ekle', () => { upNext.push(s); toast('Sıraya eklendi'); });
+    add('📁 Çalma listesine ekle', () => openMenu({ pick: true, song: s }));
+    if (tab === 'pl' && sel) add('➖ Bu listeden çıkar', () => { D.pl[sel] = D.pl[sel].filter(x => String(x) !== String(s.id)); saveD(); render(); });
+  }
+  $('menu').classList.add('open');
+}
+
+/* Albüm kapakları (sadece Android uygulamasında) */
+function loadArt(th) {
+  const im = new Image();
+  im.onload = () => { th.textContent = ''; th.appendChild(im); };
+  im.src = Capacitor.convertFileSrc(th.dataset.art);
+}
+const io = NATIVE && 'IntersectionObserver' in window
+  ? new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { io.unobserve(e.target); loadArt(e.target); } })) : null;
+function setThumb(el, s) { el.textContent = '🎵'; if (NATIVE && s.art) { el.dataset.art = s.art; loadArt(el); } }
+
+/* Çalma hızı ve tema rengi */
+const SPEEDS = [1, 1.25, 1.5, 2, 0.75, 0.5];
+const paintSpeed = () => { $('speedBtn').textContent = '⚡ ' + D.speed + 'x'; setOn($('speedBtn'), D.speed !== 1); };
+$('speedBtn').onclick = () => { D.speed = SPEEDS[(SPEEDS.indexOf(D.speed) + 1) % SPEEDS.length]; saveD(); audio.defaultPlaybackRate = audio.playbackRate = D.speed; paintSpeed(); };
+paintSpeed();
+const ACC = ['#facc15', '#22d3ee', '#a78bfa', '#fb7185', '#4ade80', '#fb923c'];
+const setAccent = c => { D.accent = c; document.documentElement.style.setProperty('--gold', c); saveD(); };
+$('themeBtn').onclick = () => setAccent(ACC[(ACC.indexOf(D.accent) + 1) % ACC.length]);
+setAccent(D.accent);
+
+/* Arka planda çalma: ön plan servisi bildirimi */
+const nativeNow = playing => {
+  if (!NATIVE) return;
+  try { Capacitor.Plugins.MusicScanner.nowPlaying({ title: current ? current.name : '', artist: current ? current.artist : '', playing }); } catch (_) {}
+};
+audio.addEventListener('play', () => nativeNow(true));
+audio.addEventListener('pause', () => setTimeout(() => { if (audio.paused) nativeNow(false); }, 1500));
 
 init();
 </script>
