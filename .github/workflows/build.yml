@@ -1,0 +1,44 @@
+name: MAQA Pro APK derle
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Capacitor projesini kur
+        run: |
+          mkdir -p www
+          cp index.html www/index.html
+          npm init -y
+          npm i @capacitor/core@7 @capacitor/cli@7 @capacitor/android@7
+          npx cap init "MAQA Pro" com.maqa.pro --web-dir=www
+          npx cap add android
+
+      - name: Müzik tarama eklentisi ve izinler
+        run: |
+          cp MusicScannerPlugin.java MainActivity.java android/app/src/main/java/com/maqa/pro/
+          sed -i 's|<application|<uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />\n    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />\n    <application|' android/app/src/main/AndroidManifest.xml
+          npx cap sync android
+
+      - name: APK derle
+        run: cd android && ./gradlew assembleDebug
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: maqa-pro-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
