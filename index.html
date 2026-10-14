@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MAQA Pro</title>
+<style>
+:root { --bg:#0f0f13; --panel:#181820; --card:#22222e; --line:#333344; --text:#fff; --mute:#888; --gold:#facc15; --red:#ef4444; }
+* { box-sizing:border-box; margin:0; padding:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; -webkit-tap-highlight-color:transparent; }
+html,body { height:100%; }
+body { background:var(--bg); color:var(--text); padding-top:env(safe-area-inset-top,0px); padding-bottom:140px; }
+
+.header { display:flex; justify-content:space-between; align-items:center; padding:14px 20px; background:var(--panel); position:sticky; top:0; z-index:100; }
+.header h1 { font-size:20px; color:var(--gold); }
+.header .right { display:flex; align-items:center; gap:12px; }
+#count { font-size:12px; color:var(--mute); }
+.add-btn { background:var(--gold); color:#000; font-weight:700; font-size:13px; padding:8px 14px; border-radius:18px; cursor:pointer; }
+
+.search { padding:14px 20px 4px; }
+.search input { width:100%; padding:12px 16px; background:var(--card); border:1px solid var(--line); border-radius:25px; color:#fff; font-size:14px; outline:none; }
+.search input:focus { border-color:var(--gold); }
+
+.tabs { display:flex; gap:10px; padding:10px 20px; }
+.tab { background:var(--card); color:#aaa; border:none; padding:8px 16px; border-radius:15px; font-size:13px; font-weight:600; }
+.tab.active { background:var(--gold); color:#000; }
+
+#list { list-style:none; padding:6px 20px; }
+.song { display:flex; align-items:center; gap:12px; padding:10px; border-radius:12px; margin-bottom:8px; background:var(--panel); cursor:pointer; border:1px solid transparent; }
+.song:active { background:#2a2a38; }
+.song.playing { border-color:var(--gold); }
+.thumb { width:48px; height:48px; border-radius:8px; background:linear-gradient(135deg,#3b3b52,#1d1d2a); display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; }
+.song.playing .thumb { background:var(--gold); }
+.info { flex:1; min-width:0; }
+.name { font-size:14px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.artist { font-size:12px; color:var(--mute); margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.icon-btn { background:none; border:none; color:#777; font-size:18px; padding:8px; cursor:pointer; }
+.icon-btn.on { color:var(--gold); }
+.icon-btn.arm { color:var(--red); font-size:12px; font-weight:700; }
+
+#empty { display:none; text-align:center; padding:60px 30px; color:var(--mute); font-size:14px; line-height:1.6; }
+#empty .big { font-size:46px; margin-bottom:12px; }
+#empty label { display:inline-block; margin-top:18px; }
+
+.player { position:fixed; bottom:0; left:0; width:100%; background:var(--panel); border-top:1px solid #282838; padding:12px 20px calc(12px + env(safe-area-inset-bottom,0px)); display:flex; flex-direction:column; gap:8px; z-index:1000; }
+.progress { display:flex; align-items:center; gap:10px; }
+.time { font-size:10px; color:var(--mute); min-width:32px; text-align:center; }
+#bar { flex:1; appearance:none; -webkit-appearance:none; height:4px; background:#444; border-radius:2px; outline:none; }
+#bar::-webkit-slider-thumb { -webkit-appearance:none; width:12px; height:12px; background:var(--gold); border-radius:50%; }
+.main { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.left { display:flex; align-items:center; gap:12px; min-width:0; flex:1; }
+.left .thumb { width:40px; height:40px; font-size:16px; }
+#pTitle { font-size:13px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+#pArtist { font-size:11px; color:var(--mute); }
+.controls { display:flex; align-items:center; gap:14px; }
+.ctrl { background:none; border:none; color:#fff; font-size:20px; cursor:pointer; }
+#pp { background:var(--gold); color:#000; width:40px; height:40px; border-radius:50%; border:none; font-size:16px; font-weight:700; cursor:pointer; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🎵 MAQA Pro</h1>
+  <div class="right">
+    <span id="count">0 Şarkı</span>
+    <label class="add-btn" id="addBtn" for="picker">+ Müzik Ekle</label>
+    <button class="add-btn" id="scanBtn" style="display:none;border:none">↻ Tara</button>
+  </div>
+</div>
+
+<input type="file" id="picker" accept="audio/*" multiple hidden>
+
+<div class="search"><input type="text" id="search" placeholder="Şarkı veya sanatçı ara..."></div>
+
+<div class="tabs">
+  <button class="tab active" data-tab="all">Tüm Şarkılar</button>
+  <button class="tab" data-tab="fav">Favoriler</button>
+</div>
+
+<ul id="list"></ul>
+
+<div id="empty">
+  <div class="big">🎧</div>
+  <div id="emptyText"></div>
+  <label class="add-btn" for="picker">📁 Telefondan Müzik Seç</label>
+  <button class="add-btn" id="rescanBtn" style="display:none;border:none;margin-top:18px">İzin ver ve tara</button>
+</div>
+
+<div class="player">
+  <div class="progress">
+    <span class="time" id="cur">0:00</span>
+    <input type="range" id="bar" value="0" min="0" max="100" step="0.1">
+    <span class="time" id="dur">0:00</span>
+  </div>
+  <div class="main">
+    <div class="left">
+      <div class="thumb">🎵</div>
+      <div style="min-width:0">
+        <div id="pTitle">Şarkı seçilmedi</div>
+        <div id="pArtist">MAQA Player</div>
+      </div>
+    </div>
+    <div class="controls">
+      <button class="ctrl" id="prev">⏮</button>
+      <button id="pp">▶</button>
+      <button class="ctrl" id="next">⏭</button>
+    </div>
+  </div>
+</div>
+
+<audio id="audio" preload="metadata"></audio>
+
+<script>
+const $ = id => document.getElementById(id);
+const audio = $('audio'), list = $('list');
+let db = null, songs = [], queue = [], current = null, tab = 'all', objUrl = null, scanError = false;
+
+/* ---------- Android uygulaması: müzikleri otomatik tara ---------- */
+const NATIVE = !!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform());
+const getFavs = () => { try { return new Set(JSON.parse(localStorage.getItem('maqa-favs') || '[]')); } catch (_) { return new Set(); } };
+const saveFavs = set => { try { localStorage.setItem('maqa-favs', JSON.stringify([...set])); } catch (_) {} };
+async function scanNative() {
+  scanError = false;
+  try {
+    const res = await Capacitor.Plugins.MusicScanner.scan();
+    const favs = getFavs();
+    songs = res.songs.map(m => ({
+      id: 'n' + m.id, name: m.title,
+      artist: (!m.artist || m.artist === '<unknown>') ? 'Bilinmeyen sanatçı' : m.artist,
+      uri: m.uri, native: true, fav: favs.has('n' + m.id) ? 1 : 0
+    })).sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+  } catch (e) { songs = []; scanError = true; }
+  render();
+}
+
+/* ---------- Kalıcı depolama (IndexedDB): bir kez ekle, her açılışta hazır ---------- */
+function openDB() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open('maqa-pro', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('songs', { keyPath: 'id', autoIncrement: true });
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+function tx(mode, fn) {
+  return new Promise((res, rej) => {
+    const t = db.transaction('songs', mode);
+    const req = fn(t.objectStore('songs'));
+    t.oncomplete = () => res(req && req.result);
+    t.onerror = t.onabort = () => rej(t.error);
+  });
+}
+async function init() {
+  if (NATIVE) {
+    $('addBtn').style.display = 'none'; $('scanBtn').style.display = '';
+    $('scanBtn').onclick = scanNative; $('rescanBtn').onclick = scanNative;
+    return scanNative();
+  }
+  try {
+    if (navigator.storage && navigator.storage.persist) navigator.storage.persist();
+    db = await openDB();
+    songs = (await tx('readonly', s => s.getAll())) || [];
+  } catch (e) { db = null; songs = []; }
+  render();
+}
+
+/* ---------- Dosya ekleme ---------- */
+function parseName(file) {
+  const base = file.name.replace(/\.[^/.]+$/, '');
+  const i = base.indexOf(' - ');
+  return i > 0 ? [base.slice(0, i).trim(), base.slice(i + 3).trim()] : ['Bilinmeyen sanatçı', base];
+}
+$('picker').addEventListener('change', async e => {
+  for (const f of [...e.target.files]) {
+    const [artist, name] = parseName(f);
+    const rec = { name, artist, fav: 0, blob: f };
+    try { rec.id = await tx('readwrite', s => s.add(rec)); }
+    catch (_) { rec.id = Date.now() + Math.random(); } // depolama yoksa sadece bu oturumda kalır
+    songs.push(rec);
+  }
+  e.target.value = '';
+  render();
+});
+
+/* ---------- Liste ---------- */
+function render() {
+  const q = $('search').value.trim().toLowerCase();
+  queue = songs.filter(s => (tab === 'all' || s.fav) && (s.name + ' ' + s.artist).toLowerCase().includes(q));
+  $('count').textContent = songs.length + ' Şarkı';
+
+  list.textContent = '';
+  queue.forEach(s => {
+    const li = document.createElement('li');
+    li.className = 'song' + (current && current.id === s.id ? ' playing' : '');
+    li.innerHTML = '<div class="thumb">🎵</div><div class="info"><div class="name"></div><div class="artist"></div></div>';
+    li.querySelector('.name').textContent = s.name;
+    li.querySelector('.artist').textContent = s.artist;
+
+    const fav = document.createElement('button');
+    fav.className = 'icon-btn' + (s.fav ? ' on' : '');
+    fav.textContent = s.fav ? '★' : '☆';
+    fav.onclick = ev => { ev.stopPropagation(); toggleFav(s); };
+
+    const del = document.createElement('button');
+    del.className = 'icon-btn';
+    del.textContent = '🗑';
+    del.onclick = ev => {
+      ev.stopPropagation();
+      if (del.dataset.arm) return removeSong(s);
+      del.dataset.arm = '1'; del.textContent = 'Sil?'; del.classList.add('arm');
+      setTimeout(() => { del.dataset.arm = ''; del.textContent = '🗑'; del.classList.remove('arm'); }, 2500);
+    };
+
+    NATIVE ? li.append(fav) : li.append(fav, del);
+    li.onclick = () => play(s);
+    list.appendChild(li);
+  });
+
+  const empty = $('empty');
+  empty.querySelector('label').style.display = 'none'; $('rescanBtn').style.display = 'none';
+  if (!songs.length) {
+    $('emptyText').textContent = NATIVE
+      ? (scanError ? 'Müzik izni verilmedi. İzin verip tekrar dene.' : 'Telefonda müzik bulunamadı.')
+      : 'Henüz müzik yok. Telefonundan şarkıları bir kez seç, uygulamayı her açtığında burada hazır olsun.';
+    empty.style.display = 'block';
+    if (NATIVE) $('rescanBtn').style.display = ''; else empty.querySelector('label').style.display = '';
+  } else if (!queue.length) {
+    $('emptyText').textContent = tab === 'fav' && !q ? 'Henüz favori şarkın yok. Şarkının yanındaki ☆ işaretine dokun.' : 'Sonuç bulunamadı.';
+    empty.style.display = 'block'; empty.querySelector('label').style.display = 'none';
+  } else empty.style.display = 'none';
+}
+
+async function toggleFav(s) {
+  s.fav = s.fav ? 0 : 1;
+  if (s.native) { const f = getFavs(); s.fav ? f.add(s.id) : f.delete(s.id); saveFavs(f); }
+  else try { await tx('readwrite', st => st.put(s)); } catch (_) {}
+  render();
+}
+async function removeSong(s) {
+  try { await tx('readwrite', st => st.delete(s.id)); } catch (_) {}
+  songs = songs.filter(x => x.id !== s.id);
+  if (current && current.id === s.id) {
+    audio.pause(); audio.removeAttribute('src'); current = null;
+    $('pTitle').textContent = 'Şarkı seçilmedi'; $('pArtist').textContent = 'MAQA Player';
+    $('bar').value = 0; $('cur').textContent = '0:00'; $('dur').textContent = '0:00';
+  }
+  render();
+}
+
+/* ---------- Oynatıcı ---------- */
+function play(s) {
+  current = s;
+  if (objUrl) URL.revokeObjectURL(objUrl);
+  objUrl = null;
+  audio.src = s.native ? Capacitor.convertFileSrc(s.uri) : (objUrl = URL.createObjectURL(s.blob));
+  audio.play().catch(() => {});
+  $('pTitle').textContent = s.name;
+  $('pArtist').textContent = s.artist;
+  if ('mediaSession' in navigator) {
+    navigator.mediaSession.metadata = new MediaMetadata({ title: s.name, artist: s.artist, album: 'MAQA Pro' });
+  }
+  render();
+}
+function step(d) {
+  if (!queue.length) return;
+  let i = queue.findIndex(s => current && s.id === current.id);
+  if (i < 0) i = d > 0 ? -1 : 0;
+  play(queue[(i + d + queue.length) % queue.length]);
+}
+function toggle() {
+  if (!audio.src) return;
+  audio.paused ? audio.play().catch(() => {}) : audio.pause();
+}
+const fmt = t => Math.floor(t / 60) + ':' + String(Math.floor(t % 60)).padStart(2, '0');
+
+$('pp').onclick = toggle;
+$('next').onclick = () => step(1);
+$('prev').onclick = () => step(-1);
+audio.addEventListener('play', () => $('pp').textContent = '❚❚');
+audio.addEventListener('pause', () => $('pp').textContent = '▶');
+audio.addEventListener('ended', () => step(1));
+audio.addEventListener('timeupdate', () => {
+  if (!audio.duration) return;
+  $('bar').value = (audio.currentTime / audio.duration) * 100;
+  $('cur').textContent = fmt(audio.currentTime);
+  $('dur').textContent = fmt(audio.duration);
+});
+$('bar').addEventListener('input', () => {
+  if (audio.duration) audio.currentTime = ($('bar').value / 100) * audio.duration;
+});
+
+/* Kilit ekranı / bildirim kontrolleri */
+if ('mediaSession' in navigator) {
+  navigator.mediaSession.setActionHandler('play', toggle);
+  navigator.mediaSession.setActionHandler('pause', toggle);
+  navigator.mediaSession.setActionHandler('nexttrack', () => step(1));
+  navigator.mediaSession.setActionHandler('previoustrack', () => step(-1));
+}
+
+/* Sekmeler ve arama */
+document.querySelectorAll('.tab').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+  b.classList.add('active'); tab = b.dataset.tab; render();
+});
+$('search').addEventListener('input', render);
+
+init();
+</script>
+</body>
+</html>
