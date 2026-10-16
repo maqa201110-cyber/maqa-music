@@ -120,6 +120,7 @@ body.playing .disc{animation-play-state:running}
 #toast{position:fixed;left:50%;bottom:150px;transform:translate(-50%,20px);background:#fff;color:#000;padding:10px 16px;border-radius:20px;font-size:13px;opacity:0;pointer-events:none;transition:.25s;z-index:4000}
 #toast.show{opacity:1;transform:translate(-50%,0)}
 .bass{display:flex;align-items:center;gap:12px;margin-top:18px}.bass span{font-size:14px;font-weight:700;white-space:nowrap}.bass b{min-width:32px;text-align:right;color:var(--gold)}
+#npTitle{overflow-wrap:anywhere}
 </style>
 </head>
 <body>
@@ -204,7 +205,7 @@ body.playing .disc{animation-play-state:running}
 <script>
 const $ = id => document.getElementById(id);
 const audio = $('audio'), list = $('list');
-let db = null, songs = [], queue = [], current = null, tab = 'all', objUrl = null, scanError = false;
+let db = null, songs = [], queue = [], current = null, tab = 'all', objUrl = null, scanError = false, playQ = [], qPos = -1;
 
 /* ---------- Android uygulaması: müzikleri otomatik tara ---------- */
 const NATIVE = !!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform());
@@ -212,6 +213,7 @@ const getFavs = () => { try { return new Set(JSON.parse(localStorage.getItem('ma
 const saveFavs = set => { try { localStorage.setItem('maqa-favs', JSON.stringify([...set])); } catch (_) {} };
 async function scanNative() {
   scanError = false;
+  if (!songs.length) { $('emptyText').textContent = 'Müzikler taranıyor...'; $('empty').style.display = 'block'; }
   try {
     const res = await Capacitor.Plugins.MusicScanner.scan();
     const favs = getFavs();
@@ -263,6 +265,7 @@ function parseName(file) {
 }
 $('picker').addEventListener('change', async e => {
   for (const f of [...e.target.files]) {
+    if (songs.some(x => x.blob && x.blob.name === f.name && x.blob.size === f.size)) continue;
     const [artist, name] = parseName(f);
     const rec = { name, artist, fav: 0, blob: f };
     try { rec.id = await tx('readwrite', s => s.add(rec)); }
@@ -309,7 +312,8 @@ function render() {
     };
 
     NATIVE ? li.append(fav, more) : li.append(fav, more, del);
-    li.onclick = () => play(s);
+    li.dataset.id = s.id;
+    li.onclick = () => { playQ = queue.slice(); qPos = queue.indexOf(s); play(s); };
     list.appendChild(li);
   });
 
@@ -362,16 +366,19 @@ function play(s) {
   if ('mediaSession' in navigator) {
     navigator.mediaSession.metadata = new MediaMetadata({ title: s.name, artist: s.artist, album: 'MAQA Pro' });
   }
-  render();
+  markPlaying();
 }
 function step(d) {
   if (d > 0 && upNext.length) return play(upNext.shift());
-  if (!queue.length) return;
-  let i = queue.findIndex(s => current && s.id === current.id);
+  const Q = playQ.length ? playQ : queue;
+  if (!Q.length) return;
+  let i = Q.findIndex(s => current && s.id === current.id);
+  if (i >= 0) qPos = i; else i = qPos;
   if (i < 0) i = d > 0 ? -1 : 0;
-  if (shuffle && d > 0 && queue.length > 1) { let j; do { j = Math.floor(Math.random() * queue.length); } while (j === i); return play(queue[j]); }
-  play(queue[(i + d + queue.length) % queue.length]);
+  if (shuffle && d > 0 && Q.length > 1) { let j; do { j = Math.floor(Math.random() * Q.length); } while (j === i); return play(Q[j]); }
+  play(Q[(i + d + Q.length) % Q.length]);
 }
+function prev() { if (audio.currentTime > 3) audio.currentTime = 0; else step(-1); }
 function toggle() {
   if (!audio.src) return;
   if (ctx && ctx.state === 'suspended') ctx.resume();
@@ -381,21 +388,26 @@ const fmt = t => Math.floor(t / 60) + ':' + String(Math.floor(t % 60)).padStart(
 
 $('pp').onclick = toggle;
 $('next').onclick = () => step(1);
-$('prev').onclick = () => step(-1);
+$('prev').onclick = prev;
 audio.addEventListener('play', () => { $('pp').textContent = $('pp2').textContent = '❚❚'; document.body.classList.add('playing'); });
 audio.addEventListener('pause', () => { $('pp').textContent = $('pp2').textContent = '▶'; document.body.classList.remove('playing'); np.style.setProperty('--b', 0); });
 audio.addEventListener('ended', () => {
   if (repeat === 2) { audio.currentTime = 0; audio.play().catch(() => {}); return; }
-  const i = queue.findIndex(s => current && s.id === current.id);
-  if (repeat === 0 && !shuffle && !upNext.length && i === queue.length - 1) return;
+  const Q = playQ.length ? playQ : queue;
+  const i = Q.findIndex(s => current && s.id === current.id);
+  if (repeat === 0 && !shuffle && !upNext.length && i === Q.length - 1) return;
   step(1);
+});
+let drag = false;
+['bar', 'bar2'].forEach(id => {
+  ['pointerdown', 'touchstart'].forEach(ev => $(id).addEventListener(ev, () => drag = true));
+  ['pointerup', 'pointercancel', 'touchend', 'change'].forEach(ev => $(id).addEventListener(ev, () => drag = false));
 });
 audio.addEventListener('timeupdate', () => {
   if (!audio.duration) return;
-  $('bar').value = (audio.currentTime / audio.duration) * 100;
-  $('cur').textContent = fmt(audio.currentTime);
-  $('dur').textContent = fmt(audio.duration);
-  $('bar2').value = $('bar').value; $('cur2').textContent = $('cur').textContent; $('dur2').textContent = $('dur').textContent;
+  if (!drag) { const v = (audio.currentTime / audio.duration) * 100; $('bar').value = v; $('bar2').value = v; }
+  const c = fmt(audio.currentTime), d = fmt(audio.duration);
+  $('cur').textContent = $('cur2').textContent = c; $('dur').textContent = $('dur2').textContent = d;
 });
 $('bar').addEventListener('input', () => {
   if (audio.duration) audio.currentTime = ($('bar').value / 100) * audio.duration;
@@ -406,7 +418,7 @@ if ('mediaSession' in navigator) {
   navigator.mediaSession.setActionHandler('play', toggle);
   navigator.mediaSession.setActionHandler('pause', toggle);
   navigator.mediaSession.setActionHandler('nexttrack', () => step(1));
-  navigator.mediaSession.setActionHandler('previoustrack', () => step(-1));
+  navigator.mediaSession.setActionHandler('previoustrack', prev);
 }
 
 /* Sekmeler ve arama */
@@ -441,7 +453,7 @@ $('npClose').onclick = $('eqClose').onclick = () => history.back();
 /* Oynatma kontrolleri */
 $('pp2').onclick = toggle;
 $('next2').onclick = () => step(1);
-$('prev2').onclick = () => step(-1);
+$('prev2').onclick = prev;
 $('npFav').onclick = () => { if (current) toggleFav(current); };
 $('bar2').addEventListener('input', () => { if (audio.duration) audio.currentTime = ($('bar2').value / 100) * audio.duration; });
 $('shufBtn').onclick = () => { shuffle = !shuffle; setOn($('shufBtn'), shuffle); };
@@ -629,6 +641,35 @@ const nativeNow = playing => {
 };
 audio.addEventListener('play', () => nativeNow(true));
 audio.addEventListener('pause', () => setTimeout(() => { if (audio.paused) nativeNow(false); }, 1500));
+
+/* ===== Hata düzeltmeleri ===== */
+function markPlaying() {
+  document.querySelectorAll('.song').forEach(li => {
+    const on = !!current && String(li.dataset.id) === String(current.id), th = li.querySelector('.thumb');
+    li.classList.toggle('playing', on);
+    if (on) th.innerHTML = '<b class="bars"><i></i><i></i><i></i></b>';
+    else if (th.querySelector('.bars')) {
+      th.textContent = '🎵'; const s = byId(li.dataset.id);
+      if (NATIVE && s && s.art) { th.dataset.art = s.art; loadArt(th); }
+    }
+  });
+  syncNp();
+}
+/* Çalınamayan şarkıyı atla (en fazla 3 kez üst üste) */
+let errRun = 0;
+audio.addEventListener('error', () => {
+  if (!current || !audio.getAttribute('src')) return;
+  toast('Çalınamadı: ' + current.name);
+  if (++errRun < 3) setTimeout(() => step(1), 600);
+});
+audio.addEventListener('playing', () => { errRun = 0; });
+/* Uygulamaya dönünce yeni müzikleri otomatik tara */
+let lastScan = Date.now();
+document.addEventListener('visibilitychange', () => {
+  if (NATIVE && !document.hidden && !scanError && Date.now() - lastScan > 20000) { lastScan = Date.now(); scanNative(); }
+});
+/* Kulaklık çıkınca müziği durdur */
+if (NATIVE) { try { Capacitor.Plugins.MusicScanner.addListener('noisy', () => audio.pause()); } catch (_) {} }
 
 init();
 </script>

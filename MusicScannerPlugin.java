@@ -6,7 +6,11 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.Manifest;
+import android.content.BroadcastReceiver;
 import android.content.ContentUris;
+import android.content.Context;
+import android.content.IntentFilter;
+import android.media.AudioManager;
 import android.content.Intent;
 import android.content.pm.ServiceInfo;
 import android.database.Cursor;
@@ -64,7 +68,9 @@ public class MusicScannerPlugin extends Plugin {
             MediaStore.Audio.Media._ID, MediaStore.Audio.Media.TITLE, MediaStore.Audio.Media.ARTIST,
             MediaStore.Audio.Media.ALBUM_ID, MediaStore.Audio.Media.DATE_ADDED
         };
-        String where = MediaStore.Audio.Media.IS_MUSIC + " != 0 AND " + MediaStore.Audio.Media.DURATION + " >= 30000";
+        String where = "(" + MediaStore.Audio.Media.IS_MUSIC + " != 0 OR " + MediaStore.Audio.Media.DURATION + " >= 90000) AND "
+            + MediaStore.Audio.Media.DURATION + " >= 30000 AND " + MediaStore.Audio.Media.IS_RINGTONE + " = 0 AND "
+            + MediaStore.Audio.Media.IS_NOTIFICATION + " = 0 AND " + MediaStore.Audio.Media.IS_ALARM + " = 0";
 
         JSArray songs = new JSArray();
         try (Cursor c = getContext().getContentResolver().query(
@@ -89,6 +95,23 @@ public class MusicScannerPlugin extends Plugin {
         JSObject res = new JSObject();
         res.put("songs", songs);
         call.resolve(res);
+    }
+
+    /* ---------- Kulaklık çıkınca durdur ---------- */
+    private final BroadcastReceiver noisy = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context c, Intent i) { notifyListeners("noisy", new JSObject()); }
+    };
+
+    @Override
+    public void load() {
+        ContextCompat.registerReceiver(getContext(), noisy,
+            new IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY), ContextCompat.RECEIVER_NOT_EXPORTED);
+    }
+
+    @Override
+    protected void handleOnDestroy() {
+        try { getContext().unregisterReceiver(noisy); } catch (Exception e) { }
     }
 
     /* ---------- Arka planda çalma (ön plan servisi) ---------- */
@@ -151,6 +174,9 @@ public class MusicScannerPlugin extends Plugin {
             }
             return START_NOT_STICKY;
         }
+
+        @Override
+        public void onTaskRemoved(Intent rootIntent) { stopSelf(); }
 
         @Override
         public void onDestroy() {
