@@ -124,24 +124,40 @@ body.playing .disc{animation-play-state:running}
 
 .header h1{white-space:nowrap;font-size:18px}.header .right{gap:4px}.header .ic{padding:6px 4px}
 #count{white-space:nowrap;font-size:11px}.add-btn{white-space:nowrap}
-body{padding-bottom:calc(210px + env(safe-area-inset-bottom,0px))}
-.nav{position:fixed;bottom:0;left:0;width:100%;height:calc(58px + env(safe-area-inset-bottom,0px));padding-bottom:env(safe-area-inset-bottom,0px);display:flex;background:#12121a;border-top:1px solid #282838;z-index:1100}
-.nav button{flex:1;height:58px;background:none;border:none;color:#888;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:11px;font-weight:600}
-.nav button span{font-size:22px;line-height:1}
-.nav button.on{color:var(--gold)}
-.player{display:none;bottom:calc(58px + env(safe-area-inset-bottom,0px));padding:8px 16px 10px;gap:4px}
-body.has-song .player{display:flex}
-.player .time{display:none}.player .progress{gap:0}
-#toast{bottom:190px}
-.page{padding:20px}
-.soon{text-align:center;padding:80px 20px;color:var(--mute)}.soon .big{font-size:52px}.soon h2{color:#fff;margin:10px 0 6px}
-.profile{display:flex;align-items:center;gap:16px;background:var(--panel);border-radius:16px;padding:18px}
-.avatar{width:64px;height:64px;border-radius:50%;background:var(--card);display:grid;place-items:center;font-size:30px}
-.pname{font-size:18px;font-weight:800}.psub{font-size:13px;color:var(--mute);margin-top:4px}
-.login{width:100%;margin:14px 0;padding:14px;border-radius:14px;border:none;background:var(--gold);color:#000;font-weight:700;font-size:15px}
-#meStats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.stat{background:var(--panel);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:4px}
-.stat span{font-size:20px}.stat b{font-size:24px}.stat i{font-style:normal;font-size:12px;color:var(--mute)}
+body{padding-bottom:calc(150px + env(safe-area-inset-bottom,0px))}
+
+:root{--hi0:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='%23000' stroke-width='2' stroke-linejoin='round' d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z'/%3E%3C/svg%3E");--hi1:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z'/%3E%3C/svg%3E")}
+#np{--ac:hsl(var(--h,260) 85% 76%);background:linear-gradient(180deg,hsl(var(--h,260) 30% 26%),hsl(var(--h,260) 30% 13%))}
+.art{width:min(80vw,360px);height:auto;aspect-ratio:1;border-radius:28px;font-size:96px;box-shadow:0 18px 50px #0006}
+#npTitle{font-size:30px;font-weight:800;color:var(--ac);margin-top:6px;overflow-wrap:anywhere}
+#npArtist{font-size:17px;color:#d4d2e4}
+.np-acts{display:flex;align-items:center}
+.heart,.more{width:44px;height:44px;padding:0;font-size:0;color:transparent;position:relative}
+.heart{background:var(--ac);-webkit-mask:var(--hi0) center/28px no-repeat;mask:var(--hi0) center/28px no-repeat}
+.heart.on{-webkit-mask-image:var(--hi1);mask-image:var(--hi1)}
+.more::before{content:'';position:absolute;left:50%;top:50%;width:5px;height:5px;margin:-2.5px 0 0 -2.5px;border-radius:50%;background:var(--ac);box-shadow:0 -9px 0 var(--ac),0 9px 0 var(--ac)}
+.np-ctrl{display:flex;justify-content:space-between;align-items:center;padding:0 22px;margin:16px 0 18px}
+.np-ctrl button{background:none;border:none;padding:0;font-size:0;color:transparent;opacity:1;display:grid;place-items:center;border-radius:0}
+.np-ctrl button::before{content:'';display:block;background:var(--ac)}
+.np-ctrl #prev2,.np-ctrl #next2{width:70px;height:60px}
+.np-ctrl #prev2::before,.np-ctrl #next2::before{width:62px;height:46px}
+.np-ctrl #prev2::before{clip-path:polygon(0 50%,50% 0,50% 50%,100% 0,100% 100%,50% 50%,50% 100%)}
+.np-ctrl #next2::before{clip-path:polygon(100% 50%,50% 0,50% 50%,0 0,0 100%,50% 50%,50% 100%)}
+.np-ctrl #pp2{width:100px;height:96px;background:none;border-radius:0}
+.np-ctrl #pp2::before{width:64px;height:72px;clip-path:polygon(0 0,100% 50%,0 100%)}
+body.playing .np-ctrl #pp2::before{clip-path:none;background:linear-gradient(90deg,var(--ac) 0 34%,transparent 34% 66%,var(--ac) 66% 100%)}
+.np-bottom{display:flex;align-items:center;gap:8px;margin-top:4px}
+.np-bottom .ic{font-size:24px;opacity:.55}.np-bottom .ic.on{opacity:1}
+.np-bottom .pill{flex:1}
+#fx{position:fixed;inset:0;z-index:3000;background:#0008;display:none;align-items:flex-end}
+#fx.open{display:flex}
+#fxBox{width:100%;background:#22222e;border-radius:20px 20px 0 0;padding:16px 20px calc(18px + env(safe-area-inset-bottom,0px))}
+.fx-row{display:flex;gap:10px}
+.fx-title{margin:18px 0 10px;font-size:12px;color:var(--mute)}
+#fxList{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+#fxList button{padding:14px;border-radius:14px;border:1px solid #4a4766;background:transparent;color:#fff;font-size:14px;text-align:left}
+#fxList button small{color:var(--mute);font-size:11px}
+#fxList button.on{border-color:var(--gold);background:#facc1518;color:var(--gold)}
 </style>
 </head>
 <body>
@@ -182,12 +198,6 @@ body.has-song .player{display:flex}
 
 </div>
 
-<div id="pgMe" class="page" style="display:none">
-  <div class="profile"><div class="avatar">👤</div><div><div class="pname">Misafir</div><div class="psub">Giriş yapmadın</div></div></div>
-  <button class="login" id="loginBtn">Giriş yap / Kayıt ol</button>
-  <div id="meStats"></div>
-</div>
-
 <div class="player">
   <div class="progress">
     <span class="time" id="cur">0:00</span>
@@ -211,14 +221,21 @@ body.has-song .player{display:flex}
 </div>
 
 <div id="np" class="sheet">
-  <div class="sh-top"><button class="ic" id="npClose">⌄</button><span>Şu an çalıyor</span><button class="ic" id="eqOpen">🎚</button></div>
-  <div class="stage"><div class="disc"><div class="thumb" id="discThumb">🎵</div></div></div>
+  <div class="sh-top"><button class="ic" id="npClose">⌄</button></div>
+  <div class="stage"><div class="thumb art" id="discThumb">🎵</div></div>
   <canvas id="viz" width="320" height="56"></canvas>
-  <div class="np-meta"><div style="min-width:0"><div id="npTitle">-</div><div id="npArtist">-</div></div><button class="ic" id="npFav">☆</button></div>
+  <div id="npTitle">-</div>
+  <div class="np-meta"><div id="npArtist">-</div><div class="np-acts"><button class="ic heart" id="npFav"></button><button class="ic more" id="npMore"></button></div></div>
   <div class="progress"><span class="time" id="cur2">0:00</span><input type="range" id="bar2" class="seek" value="0" min="0" max="100" step="0.1"><span class="time" id="dur2">0:00</span></div>
-  <div class="np-ctrl"><button id="shufBtn">🔀</button><button id="prev2">⏮</button><button id="pp2">▶</button><button id="next2">⏭</button><button id="repBtn">🔁</button></div>
-  <div class="np-bottom"><button class="pill" id="sleepBtn">⏲ Uyku: kapalı</button><button class="pill" id="speedBtn">⚡ 1x</button></div>
+  <div class="np-ctrl"><button id="prev2">⏮</button><button id="pp2">▶</button><button id="next2">⏭</button></div>
+  <div class="np-bottom"><button class="ic" id="eqOpen">🎚</button><button class="pill" id="fxPill">Efekt yok · 1x</button><button class="ic" id="shufBtn">🔀</button><button class="ic" id="repBtn">🔁</button></div>
 </div>
+
+<div id="fx"><div id="fxBox">
+  <div class="fx-row"><button class="pill" id="sleepBtn">⏲ Uyku: kapalı</button><button class="pill" id="speedBtn">⚡ 1x</button></div>
+  <div class="fx-title">Ses efektleri (sadece sesi değiştirir, dosyaya dokunmaz)</div>
+  <div id="fxList"></div>
+</div></div>
 
 <div id="eq" class="sheet">
   <div class="sh-top"><button class="ic" id="eqClose">⌄</button><span>Ekolayzer</span><label class="sw"><input type="checkbox" id="eqOn"><i></i></label></div>
@@ -226,11 +243,6 @@ body.has-song .player{display:flex}
   <div id="bands"></div>
   <div id="presets"></div>
 </div>
-
-<nav class="nav">
-  <button class="on" data-p="Music"><span>🎵</span>Müziklerim</button>
-  <button data-p="Me"><span>👤</span>Ben</button>
-</nav>
 
 <div id="menu"><div id="menuBox"></div></div>
 <div id="toast"></div>
@@ -395,7 +407,7 @@ function play(s) {
   initAudio();
   document.documentElement.style.setProperty('--h', hue(s));
   const ps = D.plays[s.id] || { n: 0 }; D.plays[s.id] = { n: ps.n + 1, t: Date.now() }; saveD();
-  audio.defaultPlaybackRate = audio.playbackRate = D.speed;
+  applyFx();
   setThumb($('discThumb'), s); setThumb($('miniThumb'), s);
   $('pTitle').textContent = s.name;
   $('pArtist').textContent = s.artist;
@@ -465,7 +477,7 @@ document.querySelectorAll('.tab').forEach(b => b.onclick = () => {
 $('search').addEventListener('input', render);
 
 /* ===== Tam ekran oynatıcı, ekolayzer, karıştır/tekrar, uyku zamanlayıcı ===== */
-let shuffle = false, repeat = 0, sleepT = null, sleepI = 0, ctx = null, filters = [], bassF = null, bassP = null, pre = null, analyser = null, fdata = null;
+let shuffle = false, repeat = 0, sleepT = null, sleepI = 0, ctx = null, filters = [], bassF = null, bassP = null, wet = null, pre = null, analyser = null, fdata = null;
 const np = $('np'), eqSheet = $('eq');
 const hue = s => { let h = 0; for (const c of s.name + s.artist) h = (h * 31 + c.charCodeAt(0)) % 360; return h; };
 const setOn = (el, v) => el.classList.toggle('on', !!v);
@@ -534,8 +546,11 @@ function initAudio() {
     analyser = ctx.createAnalyser(); analyser.fftSize = 128; fdata = new Uint8Array(analyser.frequencyBinCount);
     const comp = ctx.createDynamicsCompressor();
     comp.threshold.value = -10; comp.knee.value = 8; comp.ratio.value = 10; comp.attack.value = 0.003; comp.release.value = 0.2;
-    pre.connect(comp); comp.connect(analyser); analyser.connect(ctx.destination);
-    applyEq();
+    pre.connect(comp);
+    const conv = ctx.createConvolver(); conv.buffer = makeIR(); wet = ctx.createGain(); wet.gain.value = 0;
+    pre.connect(conv); conv.connect(wet); wet.connect(comp);
+    comp.connect(analyser); analyser.connect(ctx.destination);
+    applyEq(); applyFx();
   } catch (e) { ctx = null; }
 }
 function applyEq() {
@@ -584,7 +599,7 @@ const vc = $('viz').getContext('2d');
 })();
 
 /* ===== Listeler, sıra, sıralama, istatistik, hız, tema, albüm kapağı, arka plan ===== */
-let D = { pl: {}, plays: {}, sort: 'name', speed: 1, accent: '#facc15', bass: 40 };
+let D = { pl: {}, plays: {}, sort: 'name', speed: 1, accent: '#facc15', bass: 40, fx: 'Normal' };
 try { Object.assign(D, JSON.parse(localStorage.getItem('maqa-data') || '{}')); } catch (_) {}
 if (D.bv !== 2) { D.bv = 2; D.bass = 65; } // yeni güçlü bas varsayılanı
 const saveD = () => { try { localStorage.setItem('maqa-data', JSON.stringify(D)); } catch (_) {} };
@@ -663,7 +678,7 @@ function setThumb(el, s) { el.textContent = '🎵'; if (NATIVE && s.art) { el.da
 /* Çalma hızı ve tema rengi */
 const SPEEDS = [1, 1.25, 1.5, 2, 0.75, 0.5];
 const paintSpeed = () => { $('speedBtn').textContent = '⚡ ' + D.speed + 'x'; setOn($('speedBtn'), D.speed !== 1); };
-$('speedBtn').onclick = () => { D.speed = SPEEDS[(SPEEDS.indexOf(D.speed) + 1) % SPEEDS.length]; saveD(); audio.defaultPlaybackRate = audio.playbackRate = D.speed; paintSpeed(); };
+$('speedBtn').onclick = () => { D.speed = SPEEDS[(SPEEDS.indexOf(D.speed) + 1) % SPEEDS.length]; D.fx = 'Normal'; saveD(); applyFx(); paintSpeed(); paintFx(); };
 paintSpeed();
 const ACC = ['#facc15', '#22d3ee', '#a78bfa', '#fb7185', '#4ade80', '#fb923c'];
 const setAccent = c => { D.accent = c; document.documentElement.style.setProperty('--gold', c); saveD(); };
@@ -707,21 +722,40 @@ document.addEventListener('visibilitychange', () => {
 /* Kulaklık çıkınca müziği durdur */
 if (NATIVE) { try { Capacitor.Plugins.MusicScanner.addListener('noisy', () => audio.pause()); } catch (_) {} }
 
-/* ===== Alt menü: Müziklerim / İndir / Ben ===== */
-function paintMe() {
-  const favs = songs.filter(s => s.fav).length, lists = Object.keys(D.pl).length;
-  const plays = Object.values(D.plays).reduce((a, p) => a + (p.n || 0), 0);
-  $('meStats').innerHTML = [['🎵', songs.length, 'Şarkı'], ['★', favs, 'Favori'], ['📁', lists, 'Liste'], ['▶', plays, 'Dinleme']]
-    .map(x => '<div class="stat"><span>' + x[0] + '</span><b>' + x[1] + '</b><i>' + x[2] + '</i></div>').join('');
+/* ===== Ses efektleri ===== */
+const FX = {
+  'Normal': { r: 0, p: true, w: 0, d: 'Orijinal ses' },
+  'Slowed': { r: 0.8, p: false, w: 0, d: 'Yavaş, kalın ses' },
+  'Slowed + Reverb': { r: 0.8, p: false, w: 0.45, d: 'Yavaş, yankılı' },
+  'Sped up': { r: 1.25, p: false, w: 0, d: 'Hızlı, ince ses' },
+  'Çocuk sesi': { r: 1.5, p: false, w: 0, d: 'Çok ince, hızlı ses' },
+  'Kalın ses': { r: 0.7, p: false, w: 0, d: 'Derin, yavaş ses' }
+};
+function makeIR() {
+  const n = Math.floor(ctx.sampleRate * 2.5), b = ctx.createBuffer(2, n, ctx.sampleRate);
+  for (let c = 0; c < 2; c++) { const d = b.getChannelData(c); for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 2.5); }
+  return b;
 }
-function showPage(p) {
-  ['Music', 'Me'].forEach(k => { $('pg' + k).style.display = k === p ? '' : 'none'; });
-  document.querySelectorAll('.nav button').forEach(b => b.classList.toggle('on', b.dataset.p === p));
-  if (p === 'Me') paintMe();
-  window.scrollTo(0, 0);
+function applyFx() {
+  const f = FX[D.fx] || FX.Normal;
+  audio.defaultPlaybackRate = audio.playbackRate = f.r || D.speed;
+  audio.preservesPitch = audio.webkitPreservesPitch = f.p;
+  if (wet) wet.gain.value = f.w;
 }
-document.querySelectorAll('.nav button').forEach(b => b.onclick = () => showPage(b.dataset.p));
-$('loginBtn').onclick = () => toast('Giriş sistemi yakında eklenecek');
+function paintFx() {
+  const f = FX[D.fx] || FX.Normal;
+  document.querySelectorAll('#fxList button').forEach(b => setOn(b, b.dataset.f === D.fx));
+  $('fxPill').textContent = (D.fx === 'Normal' ? 'Efekt yok' : D.fx) + ' · ' + (f.r || D.speed) + 'x';
+}
+Object.keys(FX).forEach(n => {
+  const b = document.createElement('button'); b.dataset.f = n;
+  b.innerHTML = '<b>' + n + '</b><br><small>' + FX[n].d + '</small>';
+  b.onclick = () => { D.fx = n; saveD(); applyFx(); paintFx(); };
+  $('fxList').appendChild(b);
+});
+$('npMore').onclick = $('fxPill').onclick = () => $('fx').classList.add('open');
+$('fx').onclick = e => { if (e.target.id === 'fx') $('fx').classList.remove('open'); };
+applyFx(); paintFx();
 
 init();
 </script>
