@@ -182,10 +182,6 @@ body.has-song .player{display:flex}
 
 </div>
 
-<div id="pgDl" class="page" style="display:none">
-  <div class="soon"><div class="big">⬇️</div><h2>İndir</h2><p>Bu sayfa yakında burada olacak.</p></div>
-</div>
-
 <div id="pgMe" class="page" style="display:none">
   <div class="profile"><div class="avatar">👤</div><div><div class="pname">Misafir</div><div class="psub">Giriş yapmadın</div></div></div>
   <button class="login" id="loginBtn">Giriş yap / Kayıt ol</button>
@@ -233,7 +229,6 @@ body.has-song .player{display:flex}
 
 <nav class="nav">
   <button class="on" data-p="Music"><span>🎵</span>Müziklerim</button>
-  <button data-p="Dl"><span>⬇️</span>İndir</button>
   <button data-p="Me"><span>👤</span>Ben</button>
 </nav>
 
@@ -720,7 +715,7 @@ function paintMe() {
     .map(x => '<div class="stat"><span>' + x[0] + '</span><b>' + x[1] + '</b><i>' + x[2] + '</i></div>').join('');
 }
 function showPage(p) {
-  ['Music', 'Dl', 'Me'].forEach(k => { $('pg' + k).style.display = k === p ? '' : 'none'; });
+  ['Music', 'Me'].forEach(k => { $('pg' + k).style.display = k === p ? '' : 'none'; });
   document.querySelectorAll('.nav button').forEach(b => b.classList.toggle('on', b.dataset.p === p));
   if (p === 'Me') paintMe();
   window.scrollTo(0, 0);
